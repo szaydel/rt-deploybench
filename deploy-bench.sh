@@ -30,14 +30,27 @@
 # due to the non-standard paths being used, it will most likely bomb out
 # gloriously elsewhere.
 
-TAR_CMD=/usr/bin/tar
-WGET_CMD=/usr/bin/wget
-JAVA_HOME=.
-JAVA_BIN=${JAVA_HOME}/bin
-DEPFORCE=${DEPFORCE:=0}
+version=0.0.1 ## Increment minor version with every change.
 
 rt_root_dir=/racktop
 work_dir=/tmp
+export PATH=/racktop/usr/local/lib/python2.7.3/bin:$PATH
+default_test_dataset="/volumes/poolA/loadtest/00"
+TAR_CMD=/usr/bin/tar
+WGET_CMD=/usr/bin/wget
+VDBENCH_CMD=${rt_root_dir}/vdbench/vdbench.bash
+JAVA_HOME=/racktop/jre1.7.0_13
+JAVA_BIN=${JAVA_HOME}/bin
+DEPFORCE=${DEPFORCE:=0}
+MAKEPROF_CMD=${rt_root_dir}/rt-vdbprofgen/vdbprofile.py
+VDBPROFNAME=${work_dir}/0000.profile
+## Export $VDBPROFSHARE with a custom path, if not using default.
+VDBPROFSHARE=${VDBPROFSHARE:=${default_test_dataset}}
+VDBPROFREADPCT="30"
+VDBPROFCOUNT="500"
+VDBPROFWSS="480"
+VDBPROFELAPSED="1200"
+
 arg=$1
 siteurl=repo.racktopsystems.com
 debug=1
@@ -50,6 +63,10 @@ function command_exists () {
 	else
 		return 1
 	fi
+}
+
+function print_crit () {
+	printf "[CRIT] %s\n" "$@"
 }
 
 function print_info () {
@@ -155,6 +172,42 @@ function get_file () {
 	fi
 }
 
+function make_vdb_profile () {
+	## If racktop version of python does not exist, we will fail.
+	## We need to make sure to report this failure back to user.
+	command_exists /racktop/usr/local/lib/python2.7.3/bin/python; retcode=$?
+
+	if [[ ${retcode} != "0" ]]; then
+		print_crit "Unable to locate Racktop-specific version of Python 2.7.3. Cannot continue."
+		exit_error ""
+	fi
+
+	print_info "Generating profile ${VDBPROFNAME} with preset defaults and exported overrides."
+	## The following are default parameters with which the load test will run.
+	## We are going to pass these paramaters to our generator tool, which will 
+	local arguments="generate 
+	--path=${VDBPROFSHARE} 
+	--elapsed=${VDBPROFELAPSED} 
+	--width=10 
+	--xfersize=128 
+	--output=${VDBPROFNAME} 
+	--readpct=${VDBPROFREADPCT} 
+	--count=${VDBPROFCOUNT} 
+	--threads=16 
+	--wss=${VDBPROFWSS}"
+	python ${MAKEPROF_CMD} ${arguments}
+}
+
+function run_loadtest () {
+
+	print_info "Running loadtest using auto-generated profile ${VDBPROFNAME}."
+
+	## At this point we will simply execute vdbench with the profile
+	## that we just generated, and will store output of the run
+	## in a custom location in root's home directory.
+	${VDBENCH_CMD} -f ${VDBPROFNAME} -o /root/deploybench-$(date +"%Y%m%d")
+}
+
 case $arg in
 
 	bootstrap)
@@ -233,6 +286,11 @@ case $arg in
 		## tar xzf ${work_dir}/${vdbtgz}
 
 		# [[ ${debug} -ge "1" ]] && set +x
+		;;
+
+	loadtest)
+		## This is where we will actually generate a profile and run loadtest.
+		make_vdb_profile && run_loadtest
 		;;
 
 	*) 
