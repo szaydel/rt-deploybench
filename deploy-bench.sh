@@ -30,7 +30,7 @@
 # due to the non-standard paths being used, it will most likely bomb out
 # gloriously elsewhere.
 
-version=0.0.2 ## Increment minor version with every change.
+version=0.0.3 ## Increment minor version with every change.
 
 rt_root_dir=/racktop
 profgen_dir=${rt_root_dir}/rt-vdbloadtest
@@ -39,8 +39,9 @@ export PATH=/racktop/usr/local/lib/python2.7.3/bin:$PATH
 default_test_dataset="/volumes/poolA/loadtest/00"
 TAR_CMD=/usr/bin/tar
 WGET_CMD=/usr/bin/wget
-VDBENCH_CMD=${rt_root_dir}/vdbench/vdbench.bash
-JAVA_HOME=/racktop/jre1.7.0_13
+VDBENCH_HOME=${rt_root_dir}/vdbench
+VDBENCH_CMD=${VDBENCH_HOME}/vdbench.bash
+JAVA_HOME=/${rt_root_dir}/jre1.7.0_13
 JAVA_BIN=${JAVA_HOME}/bin
 DEPFORCE=${DEPFORCE:=0}
 MAKEPROF_CMD=${profgen_dir}/vdbprofile.py
@@ -209,6 +210,13 @@ function run_loadtest () {
 	${VDBENCH_CMD} -f ${VDBPROFNAME} -o /root/deploybench-$(date +"%Y%m%d")
 }
 
+function unstage () {
+
+	print_info "Removing previously configured JRE and vdbench."
+	## We should only need to remove the files from two directories.
+	echo rm -rf ${VDBENCH_HOME} ${JAVA_HOME}
+}
+
 case $arg in
 
 	bootstrap)
@@ -292,6 +300,10 @@ case $arg in
 	loadtest)
 		## This is where we will actually generate a profile and run loadtest.
 		make_vdb_profile && run_loadtest
+		;;
+
+	teardown)
+		unstage
 		;;
 
 	*) 
