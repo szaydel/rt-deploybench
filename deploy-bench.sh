@@ -30,9 +30,10 @@
 # due to the non-standard paths being used, it will most likely bomb out
 # gloriously elsewhere.
 
-version=0.0.1 ## Increment minor version with every change.
+version=0.0.2 ## Increment minor version with every change.
 
 rt_root_dir=/racktop
+profgen_dir=${rt_root_dir}/rt-vdbloadtest
 work_dir=/tmp
 export PATH=/racktop/usr/local/lib/python2.7.3/bin:$PATH
 default_test_dataset="/volumes/poolA/loadtest/00"
@@ -42,7 +43,7 @@ VDBENCH_CMD=${rt_root_dir}/vdbench/vdbench.bash
 JAVA_HOME=/racktop/jre1.7.0_13
 JAVA_BIN=${JAVA_HOME}/bin
 DEPFORCE=${DEPFORCE:=0}
-MAKEPROF_CMD=${rt_root_dir}/rt-vdbprofgen/vdbprofile.py
+MAKEPROF_CMD=${profgen_dir}/vdbprofile.py
 VDBPROFNAME=${work_dir}/0000.profile
 ## Export $VDBPROFSHARE with a custom path, if not using default.
 VDBPROFSHARE=${VDBPROFSHARE:=${default_test_dataset}}
